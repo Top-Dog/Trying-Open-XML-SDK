@@ -63,9 +63,6 @@ namespace Testing_Open_XML_SDK
                 Sheet sheet = new Sheet() { Id = workbookPart.GetIdOfPart(worksheetPart), SheetId = 1, Name = "Test Sheet" };
                 sheets.Append(sheet);
 
-                // TODO: move this custom method
-                AddEmployees(worksheetPart);
-
                 workbookPart.Workbook.Save();
             }
         }
