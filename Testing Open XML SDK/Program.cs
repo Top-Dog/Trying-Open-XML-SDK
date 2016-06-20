@@ -28,6 +28,13 @@ namespace Testing_Open_XML_SDK
 {
     public class Report
     {
+        private uint NumberOfSheets = 0;
+        private WorkbookPart workbookPart;
+        private Sheets sheets;
+        private WorksheetPart worksheetPart;
+        private SheetData sheetData;
+        private SpreadsheetDocument document;
+
         /* Run the program
          * @param filename: The name of the file to create
          */
@@ -35,48 +42,62 @@ namespace Testing_Open_XML_SDK
         {
             // Create an instance of Report class, and call the CreateExcelDoc method
             Report report = new Report();
-            report.CreateExcelDoc(@"H:\My Documents\Visual Studio 2013\Projects\Testing Open XML SDK\Report.xlsx");
+            report.CreateExcelDoc(@"H:\My Documents\Visual Studio 2013\Projects\Testing Open XML SDK\Report.xlsx", "Sean's Test sheet");
+            report.AddEmployees();
+            report.CloseDocument();
 
             Console.WriteLine("Excel file has been created!");
         }
 
-        /* Create a new spreadsheet document
-         * @param filename: The name of the file to create
-         */
-        public void CreateExcelDoc(string fileName)
+        public void CreateExcelDoc(string fileName, string sheetName)
         {
             // Create a new spreadsheet document with a name spescified by the method fileName parameter
-            using (SpreadsheetDocument document = SpreadsheetDocument.Create(fileName, SpreadsheetDocumentType.Workbook))
-            {
+            document = SpreadsheetDocument.Create(fileName, SpreadsheetDocumentType.Workbook);
+            //using (SpreadsheetDocument document = SpreadsheetDocument.Create(fileName, SpreadsheetDocumentType.Workbook))
+            //{
                 // Add a workbookPart to the document
-                WorkbookPart workbookPart = document.AddWorkbookPart();
+                workbookPart = document.AddWorkbookPart();
                 workbookPart.Workbook = new Workbook();
+                sheets = workbookPart.Workbook.AppendChild(new Sheets());
 
                 // Add a WorksheetPart to the workbookPart
-                WorksheetPart worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
-                worksheetPart.Worksheet = new Worksheet(new SheetData());
+                worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+                worksheetPart.Worksheet = new Worksheet();
+                sheetData = worksheetPart.Worksheet.AppendChild(new SheetData());
 
-                // Create "Sheets" parent-child relationship
-                Sheets sheets = workbookPart.Workbook.AppendChild(new Sheets());
+                // Add the first sheet
+                AddSheet(sheetName);
 
-                // Create a sheet (associated with the WorksheetPart) and append it to the "sheets" abstract object. Save the new document.
-                Sheet sheet = new Sheet() { Id = workbookPart.GetIdOfPart(worksheetPart), SheetId = 1, Name = "Test Sheet" };
-                sheets.Append(sheet);
-
+                // Save the new document
                 workbookPart.Workbook.Save();
-            }
+
+                //AddEmployees(); // try and move this... 'using' using might be like python 'with', it closes the document afterwards
+            //}
+        }
+
+        public void AddSheet(string sheetName)
+        {
+            // Create a sheet (associated with the WorksheetPart) and append it to the "sheets" abstract object.
+            NumberOfSheets += 1;
+            Sheet sheet = new Sheet() { Id = workbookPart.GetIdOfPart(worksheetPart), SheetId = NumberOfSheets, Name = sheetName };
+            sheets.Append(sheet);
+        }
+
+        public void CloseDocument()
+        {
+            document.Close();
         }
 
         /* Add employees to the newly created file
          */
-        public void AddEmployees(WorksheetPart worksheetPart)
+        public void AddEmployees()
         {
-            // Generate the list of employees from the Employees Class
+            // Get the list of employees from the Employees Class
             List<Employee> employees = Employees.EmployeesList;
 
             // Append a sheet data class to the worksheet. This acts
             // as container for all the rows and columns.
-            SheetData sheetData = worksheetPart.Worksheet.AppendChild(new SheetData());
+            //SheetData sheetData = worksheetPart.Worksheet.AppendChild(new SheetData());
 
             // Constructing header
             Row row = new Row();
@@ -100,14 +121,16 @@ namespace Testing_Open_XML_SDK
                     ConstructCell(employee.Name, CellValues.String),
                     ConstructCell(employee.DOB.ToString("yyyy/MM/dd"), CellValues.String),
                     ConstructCell(employee.Salary.ToString(), CellValues.Number));
-
+                // Insert the data into the Sheet Data
                 sheetData.AppendChild(row);
             }
-
             worksheetPart.Worksheet.Save();
         }
 
-        /* Create a cell object and populate it.
+        /* Create a cell object and populate it. Takes the value of the cell and type of data
+         * being put in as paramters.
+         * @param value: the value to be shown in Excel
+         * @param dataType: the type of data for Excel to handle 
          * @return: A cell object
          */ 
         private Cell ConstructCell(string value, CellValues dataType)
