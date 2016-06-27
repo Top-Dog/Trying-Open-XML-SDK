@@ -28,12 +28,15 @@ namespace Testing_Open_XML_SDK
 {
     public class Report
     {
+        private uint NumberOfBooks = 0;
+
         private uint NumberOfSheets = 0;
-        private WorkbookPart workbookPart;
-        private Sheets sheets;
-        private WorksheetPart worksheetPart;
-        private SheetData sheetData;
+        static List<SheetData> _sheets;
+        
         private SpreadsheetDocument document;
+        private WorkbookPart workbookPart;
+        private WorksheetPart worksheetPart;
+        private Sheets sheets;
 
         /* Run the program
          * @param filename: The name of the file to create
@@ -47,40 +50,54 @@ namespace Testing_Open_XML_SDK
             report.CloseDocument();
 
             Console.WriteLine("Excel file has been created!");
+
+            Excel xl = new Excel();
+            xl.Initialize();
+            xl.AddWorkbook(@"H:\My Documents\Visual Studio 2013\Projects\Testing Open XML SDK\Report 2.xlsx");
+            xl.AddWorksheet(@"H:\My Documents\Visual Studio 2013\Projects\Testing Open XML SDK\Report 2.xlsx", "Sheet QRTY");
+            //xl.AddWorksheet(@"H:\My Documents\Visual Studio 2013\Projects\Testing Open XML SDK\Report 2.xlsx", "Sheet QRTY 2");
+            //xl.AddWorksheet(@"H:\My Documents\Visual Studio 2013\Projects\Testing Open XML SDK\Report 2.xlsx", "Sheet QRTY 3");
+            xl.CloseDocument(@"H:\My Documents\Visual Studio 2013\Projects\Testing Open XML SDK\Report 2.xlsx");
+
+            Console.Read();
         }
 
         public void CreateExcelDoc(string fileName, string sheetName)
         {
             // Create a new spreadsheet document with a name spescified by the method fileName parameter
             document = SpreadsheetDocument.Create(fileName, SpreadsheetDocumentType.Workbook);
-            //using (SpreadsheetDocument document = SpreadsheetDocument.Create(fileName, SpreadsheetDocumentType.Workbook))
-            //{
-                // Add a workbookPart to the document
-                workbookPart = document.AddWorkbookPart();
-                workbookPart.Workbook = new Workbook();
-                sheets = workbookPart.Workbook.AppendChild(new Sheets());
+            //using (SpreadsheetDocument document = SpreadsheetDocument.Create(fileName, SpreadsheetDocumentType.Workbook)) {} // using is like python's with
+            
+            // Add a workbookPart to the document
+            workbookPart = document.AddWorkbookPart();
+            workbookPart.Workbook = new Workbook();
+            sheets = workbookPart.Workbook.AppendChild(new Sheets());
 
-                // Add a WorksheetPart to the workbookPart
-                worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
-                worksheetPart.Worksheet = new Worksheet();
-                sheetData = worksheetPart.Worksheet.AppendChild(new SheetData());
+            // Add a WorksheetPart to the workbookPart
+            worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+            worksheetPart.Worksheet = new Worksheet();
 
-                // Add the first sheet
-                AddSheet(sheetName);
+            _sheets = new List<SheetData>();
+            // Add the first sheet
+            AddSheet(sheetName);
 
-                // Save the new document
-                workbookPart.Workbook.Save();
+            // Save the new document
+            workbookPart.Workbook.Save();
+        }
 
-                //AddEmployees(); // try and move this... 'using' using might be like python 'with', it closes the document afterwards
-            //}
+        public void AddWorkBook(string workbookName)
+        {
+            NumberOfBooks += 1;
         }
 
         public void AddSheet(string sheetName)
         {
-            // Create a sheet (associated with the WorksheetPart) and append it to the "sheets" abstract object.
             NumberOfSheets += 1;
+            // Create a sheet (associated with the WorksheetPart) and append it to the "sheets" abstract object.
             Sheet sheet = new Sheet() { Id = workbookPart.GetIdOfPart(worksheetPart), SheetId = NumberOfSheets, Name = sheetName };
             sheets.Append(sheet);
+            // SheetData is a container for all the rows and cols in this newly created sheet. Add it to a list of sheets in this workbook.
+            _sheets.Add(worksheetPart.Worksheet.AppendChild(new SheetData()));
         }
 
         public void CloseDocument()
@@ -109,7 +126,7 @@ namespace Testing_Open_XML_SDK
                 ConstructCell("Salary", CellValues.String));
 
             // Insert the header row to the Sheet Data
-            sheetData.AppendChild(row);
+            _sheets[0].AppendChild(row);
 
             // Inserting each employee
             foreach (var employee in employees)
@@ -122,7 +139,7 @@ namespace Testing_Open_XML_SDK
                     ConstructCell(employee.DOB.ToString("yyyy/MM/dd"), CellValues.String),
                     ConstructCell(employee.Salary.ToString(), CellValues.Number));
                 // Insert the data into the Sheet Data
-                sheetData.AppendChild(row);
+                _sheets[0].AppendChild(row);
             }
             worksheetPart.Worksheet.Save();
         }
